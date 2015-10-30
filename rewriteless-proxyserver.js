@@ -95,3 +95,12 @@ function fn_html(request, response) {
 	});	
 	
 }
+
+function fn_random(request, response) {
+	var json_data = {'random':utils.randomString(10)};
+	response.headers = {"Content-Type":"application/json"};
+	response.statusCode = 200;
+	response.write(JSON.stringify(json_data, null, 4));
+	response.close();
+	
+}
