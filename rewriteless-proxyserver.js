@@ -9,6 +9,8 @@ if (system.args.length !== 2) {
     phantom.exit(1);
 } else {
     port = system.args[1];
+	
+	
     server = require('webserver').create();
 	page.settings.userAgent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36';
     service = server.listen(port, function (request, response) {
@@ -83,14 +85,29 @@ function fn_png(request, response) {
 
 function fn_html(request, response) {
 	var url = utils.getURLParameter(request.url, 'url');
+	var page_responses = [];
+	
+	page.onResourceReceived = function(response) {
+	  page_responses.push(response);
+	};
+		
 	page.open(url, function(status) {
 	  console.log("Status: " + status);
 	  if(status === "success") {
-		response.headers = {"Content-Type":"text/html",
-					"Content-Length":page.content.length};
+		var output_dir = utils.getenv('PRXY_OUTPUT_DIR');
+		var output_file = utils.join(output_dir, 'page.html');
+		var json = {'html_file':output_file,
+					'responses':page_responses};
+		var json_s = JSON.stringify(json, null, 4);
+		
+		response.headers = {"Content-Type":"application/json",
+					"Content-Length":json_s.length};
 		response.statusCode = 200;
-		response.write(page.content);
-		response.close();			
+		response.write(json_s);
+		response.close();	
+		
+
+		fs.write(output_file, page.content, 'w');		
 	  }
 	});	
 	
