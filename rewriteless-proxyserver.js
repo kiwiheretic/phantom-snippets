@@ -4,6 +4,13 @@ var port, server, service,
 	page = require('webpage').create(),
 	utils = require('./util-fns');
 
+var env_test = utils.getenv('PRXY_OUTPUT_DIR');
+
+if (env_test == null) {
+	console.log('PRXY_OUTPUT_DIR not set');
+	phantom.exit();
+	
+}
 if (system.args.length !== 2) {
     console.log('Usage: rewriteless-proxyserver.js <[ipaddress:]portnumber>');
     phantom.exit(1);
@@ -70,14 +77,31 @@ function fn_png(request, response) {
 	page.open(url, function(status) {
 	  console.log("Status: " + status);
 	  if(status === "success") {
+		var output_dir = utils.getenv('PRXY_OUTPUT_DIR');
 		var image_filename = 'rendered_page.png';
-		page.render(image_filename);
-		response.headers = {"Content-Type":"application/json"}
+		var output_file = utils.join(output_dir, image_filename);
+		page.render(output_file);
+		console.log("Page rendered");
+		var json_data = {filename: output_file};
+		var json_s = JSON.stringify(json_data, null, 4);
+		response.headers = {"Content-Type":"application/json",
+							"Content-Length":json_s.length}
 		response.statusCode = 200;
-		var image_meta = {filename: image_filename};
 		
-		response.write(JSON.stringify(image_meta, null, 4));
+		
+		response.write(json_s);
 		response.close();			
+	  } else {
+		var json_data = {'result':'fail'}
+		var json_s = JSON.stringify(json_data, null, 4);
+		
+		response.headers = {"Content-Type":"application/json",
+							"Content-Length":json_s.length}
+		response.statusCode = 200;
+		
+		
+		response.write(json_s);
+		response.close();			  
 	  }
 	});	
 	
